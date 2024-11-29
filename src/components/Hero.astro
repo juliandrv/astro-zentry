@@ -34,12 +34,34 @@ import Button from './Button.astro';
       </video>
 
       <!-- autoplay -->
-      <video
+      <div class='video-wrapper absolute left-0 top-0 size-full'>
+        <!-- Primary video -->
+        <video
+          class='full-video-ref absolute left-0 top-0 size-full object-cover object-center'
+          loop
+          autoplay
+          muted
+          playsinline
+        >
+        </video>
+
+        <!-- Secondary video for transitions -->
+        <video
+          class='full-video-ref-next absolute left-0 top-0 size-full object-cover object-center opacity-0'
+          loop
+          muted
+          playsinline
+        >
+        </video>
+      </div>
+
+      <!-- <video
         class='full-video-ref absolute left-0 top-0 size-full object-cover object-center'
         loop
+        autoplay
         muted
       >
-      </video>
+      </video> -->
 
       <h1
         class='special-font hero-heading absolute bottom-4 right-5 z-40 text-blue-75'
@@ -74,74 +96,464 @@ import Button from './Button.astro';
     >
       G<b>a</b>ming
     </h1>
-
-    <script>
-      let currentIndex = 1;
-      let hasClicked = false;
-      let isLoading = true;
-      let loadedVideos = 0;
-
-      const totalVideos = 4;
-
-      const nextVideoRef = document.querySelector(
-        '.next-video-ref'
-      ) as HTMLElement;
-
-      const handleVideoLoad = () => {
-        loadedVideos += 1;
-      };
-
-      const upcomingVideoIndex = () =>
-        (currentIndex % totalVideos) + 1;
-
-      const handleMiniClip = () => {
-        hasClicked = true;
-
-        currentIndex = upcomingVideoIndex();
-
-        nextVideoRef?.setAttribute(
-          'src',
-          getVideoSrc(upcomingVideoIndex())
-        );
-
-        currentVideoRef?.setAttribute(
-          'src',
-          getVideoSrc(currentIndex)
-        );
-        fullVideoRef?.setAttribute('src', getVideoSrc(currentIndex));
-      };
-
-      const miniPlayer = document.querySelector('#mini-player');
-      miniPlayer?.addEventListener('click', () => {
-        handleMiniClip();
-      });
-
-      const getVideoSrc = (index: number) =>
-        `videos/hero-${index}.mp4`;
-
-      nextVideoRef?.setAttribute(
-        'src',
-        getVideoSrc(upcomingVideoIndex())
-      );
-      nextVideoRef.addEventListener('loadeddata', () => {
-        handleVideoLoad();
-      });
-
-      const currentVideoRef = document.querySelector(
-        '.current-video-ref'
-      );
-      currentVideoRef?.setAttribute('src', getVideoSrc(currentIndex));
-
-      const fullVideoRef = document.querySelector('.full-video-ref');
-      fullVideoRef?.setAttribute(
-        'src',
-        getVideoSrc(
-          currentIndex === totalVideos - 1 ? 1 : currentIndex
-        )
-      );
-      fullVideoRef?.addEventListener('loadeddata', () => {
-        handleVideoLoad();
-      });
-    </script>
   </div>
 </div>
+
+<!-- <script>
+  import gsap from 'gsap';
+
+  let currentIndex = 1;
+  let previousIndex: number | null = null;
+
+  let hasClicked = false;
+  // let loadedVideos = 0;
+
+  const totalVideos = 4;
+
+  const nextVideoRef = document.querySelector(
+    '.next-video-ref'
+  ) as HTMLVideoElement;
+
+  const currentVideoRef = document.querySelector(
+    '.current-video-ref'
+  ) as HTMLVideoElement;
+
+  const fullVideoRef = document.querySelector(
+    '.full-video-ref'
+  ) as HTMLVideoElement;
+
+  const fullVideoRefNext = document.querySelector(
+    '.full-video-ref-next'
+  ) as HTMLVideoElement;
+
+  /* const handleVideoLoad = () => {
+        loadedVideos += 1;
+      }; */
+
+  const handleVideoTransition = () => {
+    // Get current and next indices
+    const nextIndex = upcomingVideoIndex();
+
+    // Update video sources and prepare transition
+    const nextVideoSrc = getVideoSrc(nextIndex);
+
+    // Set up videos correctly
+    if (fullVideoRef.style.opacity === '1') {
+      // Current video is fullVideoRef, prepare fullVideoRefNext
+      fullVideoRefNext.src = nextVideoSrc;
+      fullVideoRefNext.load();
+      fullVideoRefNext.addEventListener(
+        'loadeddata',
+        () => {
+          fullVideoRefNext.play();
+          gsap.to(fullVideoRef, {
+            opacity: 0,
+            duration: 0.5,
+            ease: 'power2.inOut',
+          });
+          gsap.to(fullVideoRefNext, {
+            opacity: 1,
+            duration: 0.5,
+            ease: 'power2.inOut',
+          });
+        },
+        { once: true }
+      );
+    } else {
+      // Current video is fullVideoRefNext, prepare fullVideoRef
+      fullVideoRef.src = nextVideoSrc;
+      fullVideoRef.load();
+      fullVideoRef.addEventListener(
+        'loadeddata',
+        () => {
+          fullVideoRef.play();
+          gsap.to(fullVideoRefNext, {
+            opacity: 0,
+            duration: 0.5,
+            ease: 'power2.inOut',
+          });
+          gsap.to(fullVideoRef, {
+            opacity: 1,
+            duration: 0.5,
+            ease: 'power2.inOut',
+          });
+        },
+        { once: true }
+      );
+    }
+
+    // Update current index after transition
+    currentIndex = nextIndex;
+  };
+
+  const upcomingVideoIndex = () => (currentIndex % totalVideos) + 1;
+
+  const handleMiniClip = () => {
+    if (!hasClicked) {
+      hasClicked = true;
+    }
+
+    // Handle mini player animation
+    animateContent();
+
+    // Update mini player videos
+    nextVideoRef?.setAttribute(
+      'src',
+      getVideoSrc(upcomingVideoIndex())
+    );
+    currentVideoRef?.setAttribute('src', getVideoSrc(currentIndex));
+
+    // Handle main video transition
+    handleVideoTransition();
+  };
+
+  function animateContent() {
+    if (previousIndex !== null && currentIndex !== previousIndex) {
+      gsap.killTweensOf('#next-video');
+      gsap.killTweensOf('#current-video');
+    }
+
+    if (hasClicked) {
+      // Set initial state
+      gsap.set('#next-video', {
+        visibility: 'visible',
+        scale: 0.5,
+        width: '16rem', // 64 in tailwind equals 16rem
+        height: '16rem',
+      });
+
+      // Create a timeline for better control
+      const tl = gsap.timeline();
+
+      // Animate next-video to full screen
+      tl.to('#next-video', {
+        scale: 1,
+        width: '100%',
+        height: '100%',
+        duration: 1,
+        ease: 'power2.inOut',
+        onStart: () => {
+          currentVideoRef.play();
+        },
+      });
+
+      // Animate current-video (mini player)
+      tl.from(
+        '#current-video',
+        {
+          scale: 0,
+          duration: 1,
+          ease: 'power2.inOut',
+        },
+        '<'
+      ); // Start at the same time as previous animation
+    }
+
+    previousIndex = currentIndex;
+  }
+
+  const miniPlayer = document.querySelector('#mini-player');
+  miniPlayer?.addEventListener('click', () => {
+    handleMiniClip();
+  });
+
+  const getVideoSrc = (index: number) => `videos/hero-${index}.mp4`;
+
+  nextVideoRef?.setAttribute(
+    'src',
+    getVideoSrc(upcomingVideoIndex())
+  );
+  /* nextVideoRef.addEventListener('loadeddata', () => {
+        handleVideoLoad();
+      }); */
+
+  currentVideoRef?.setAttribute('src', getVideoSrc(currentIndex));
+
+  fullVideoRef?.setAttribute(
+    'src',
+    getVideoSrc(currentIndex === totalVideos - 1 ? 1 : currentIndex)
+  );
+  /* fullVideoRef?.addEventListener('loadeddata', () => {
+        handleVideoLoad();
+      }); */
+
+  const initializeVideos = () => {
+    const initialSrc = getVideoSrc(currentIndex);
+
+    fullVideoRef.src = initialSrc;
+    fullVideoRef.style.opacity = '1';
+
+    fullVideoRefNext.src = getVideoSrc(upcomingVideoIndex());
+    fullVideoRefNext.style.opacity = '0';
+
+    // Ensure videos are muted to allow autoplay
+    fullVideoRef.muted = true;
+    fullVideoRefNext.muted = true;
+
+    // Enable playsinline for mobile devices
+    fullVideoRef.setAttribute('playsinline', '');
+    fullVideoRefNext.setAttribute('playsinline', '');
+  };
+
+  // Call initialization
+  initializeVideos();
+</script> -->
+
+<script>
+  import gsap from 'gsap';
+  // Types
+  interface VideoElements {
+    next: HTMLVideoElement;
+    current: HTMLVideoElement;
+    full: HTMLVideoElement;
+    fullNext: HTMLVideoElement;
+  }
+
+  // Constants
+  const TOTAL_VIDEOS = 4;
+  const TRANSITION_DURATION = 0.5;
+  const DEBOUNCE_DELAY = 250;
+  const INITIAL_SCALE = 0.5;
+  const MINI_PLAYER_SIZE = '16rem';
+
+  // Cache for video sources
+  const videoCache = new Map<number, string>();
+
+  // State management
+  let currentIndex = 1;
+  let previousIndex: number | null = null;
+  let hasClicked = false;
+
+  // Get DOM elements
+  const elements: VideoElements = {
+    next: document.querySelector(
+      '.next-video-ref'
+    ) as HTMLVideoElement,
+    current: document.querySelector(
+      '.current-video-ref'
+    ) as HTMLVideoElement,
+    full: document.querySelector(
+      '.full-video-ref'
+    ) as HTMLVideoElement,
+    fullNext: document.querySelector(
+      '.full-video-ref-next'
+    ) as HTMLVideoElement,
+  };
+
+  // Utility Functions
+  const getVideoSrc = (index: number): string => {
+    if (!videoCache.has(index)) {
+      videoCache.set(index, `videos/hero-${index}.mp4`);
+    }
+    return videoCache.get(index)!;
+  };
+
+  const upcomingVideoIndex = (): number =>
+    (currentIndex % TOTAL_VIDEOS) + 1;
+
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
+
+  const preloadVideo = (
+    videoElement: HTMLVideoElement,
+    src: string
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      videoElement.src = src;
+      videoElement.load();
+
+      videoElement.addEventListener('loadeddata', () => resolve(), {
+        once: true,
+      });
+      videoElement.addEventListener(
+        'error',
+        (error) => reject(error),
+        { once: true }
+      );
+    });
+  };
+
+  // Animation Functions
+  const animateContent = () => {
+    if (previousIndex !== null && currentIndex !== previousIndex) {
+      gsap.killTweensOf('#next-video');
+      gsap.killTweensOf('#current-video');
+    }
+
+    if (hasClicked) {
+      requestAnimationFrame(() => {
+        gsap.set('#next-video', {
+          visibility: 'visible',
+          scale: INITIAL_SCALE,
+          width: MINI_PLAYER_SIZE,
+          height: MINI_PLAYER_SIZE,
+        });
+
+        const tl = gsap.timeline();
+
+        tl.to('#next-video', {
+          scale: 1,
+          width: '100%',
+          height: '100%',
+          duration: 1,
+          ease: 'power2.inOut',
+          onStart: () => {
+            elements.current.play().catch(console.error);
+          },
+        });
+
+        tl.from(
+          '#current-video',
+          {
+            scale: 0,
+            duration: 1,
+            ease: 'power2.inOut',
+          },
+          '<'
+        );
+      });
+    }
+
+    previousIndex = currentIndex;
+  };
+
+  // Video Transition Handler
+  const handleVideoTransition = async () => {
+    try {
+      const nextIndex = upcomingVideoIndex();
+      const nextVideoSrc = getVideoSrc(nextIndex);
+
+      const targetVideo =
+        elements.full.style.opacity === '1'
+          ? elements.fullNext
+          : elements.full;
+      const currentVideo =
+        elements.full.style.opacity === '1'
+          ? elements.full
+          : elements.fullNext;
+
+      await preloadVideo(targetVideo, nextVideoSrc);
+
+      targetVideo.play().catch(console.error);
+      gsap.to(currentVideo, {
+        opacity: 0,
+        duration: TRANSITION_DURATION,
+        ease: 'power2.inOut',
+      });
+      gsap.to(targetVideo, {
+        opacity: 1,
+        duration: TRANSITION_DURATION,
+        ease: 'power2.inOut',
+      });
+
+      currentIndex = nextIndex;
+    } catch (error) {
+      console.error('Error during video transition:', error);
+    }
+  };
+
+  // Main Click Handler
+  const handleMiniClip = () => {
+    if (!hasClicked) {
+      hasClicked = true;
+    }
+
+    animateContent();
+
+    elements.next.setAttribute(
+      'src',
+      getVideoSrc(upcomingVideoIndex())
+    );
+    elements.current.setAttribute('src', getVideoSrc(currentIndex));
+
+    handleVideoTransition();
+  };
+
+  // Initialize Videos
+  const initializeVideos = () => {
+    try {
+      const initialSrc = getVideoSrc(currentIndex);
+      const nextSrc = getVideoSrc(upcomingVideoIndex());
+
+      // Set up main videos
+      elements.full.src = initialSrc;
+      elements.full.style.opacity = '1';
+      elements.fullNext.src = nextSrc;
+      elements.fullNext.style.opacity = '0';
+
+      // Configure video settings
+      [elements.full, elements.fullNext].forEach((video) => {
+        video.muted = true;
+        video.setAttribute('playsinline', '');
+      });
+
+      // Set up mini player videos
+      elements.next.setAttribute('src', nextSrc);
+      elements.current.setAttribute('src', initialSrc);
+
+      // Set up intersection observer for lazy loading
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const video = entry.target as HTMLVideoElement;
+              video.load();
+              observer.unobserve(video);
+            }
+          });
+        },
+        { threshold: 0.1 }
+      );
+
+      // Observe all video elements
+      Object.values(elements).forEach((video) =>
+        observer.observe(video)
+      );
+    } catch (error) {
+      console.error('Error initializing videos:', error);
+    }
+  };
+
+  // Event Listeners
+  const setupEventListeners = () => {
+    const miniPlayer = document.querySelector('#mini-player');
+    const debouncedHandleMiniClip = debounce(
+      handleMiniClip,
+      DEBOUNCE_DELAY
+    );
+
+    miniPlayer?.addEventListener('click', debouncedHandleMiniClip);
+
+    // Cleanup function
+    return () => {
+      miniPlayer?.removeEventListener(
+        'click',
+        debouncedHandleMiniClip
+      );
+    };
+  };
+
+  // Initialize everything
+  const init = () => {
+    initializeVideos();
+    const cleanup = setupEventListeners();
+
+    // Return cleanup function
+    return cleanup;
+  };
+
+  // Start the application
+  const cleanup = init();
+
+  // Cleanup on page unload
+  window.addEventListener('unload', cleanup);
+</script>
