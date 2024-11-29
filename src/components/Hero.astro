@@ -33,7 +33,6 @@ import Button from './Button.astro';
       >
       </video>
 
-      <!-- autoplay -->
       <div class='video-wrapper absolute left-0 top-0 size-full'>
         <!-- Primary video -->
         <video
@@ -312,8 +311,8 @@ import Button from './Button.astro';
   // Constants
   const TOTAL_VIDEOS = 4;
   const TRANSITION_DURATION = 0.5;
-  const DEBOUNCE_DELAY = 250;
-  const INITIAL_SCALE = 0.5;
+  const DEBOUNCE_DELAY = 0;
+  const INITIAL_SCALE = 1;
   const MINI_PLAYER_SIZE = '16rem';
 
   // Cache for video sources
@@ -391,15 +390,26 @@ import Button from './Button.astro';
 
     if (hasClicked) {
       requestAnimationFrame(() => {
+        // Get the mini player dimensions and position
+        const miniPlayer = document.querySelector('#mini-player');
+        const miniPlayerRect = miniPlayer?.getBoundingClientRect();
+
+        // Set initial state to match mini player size and position
         gsap.set('#next-video', {
           visibility: 'visible',
           scale: INITIAL_SCALE,
           width: MINI_PLAYER_SIZE,
           height: MINI_PLAYER_SIZE,
+          xPercent: -50,
+          yPercent: -50,
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
         });
 
         const tl = gsap.timeline();
 
+        // Animate from mini size to full screen
         tl.to('#next-video', {
           scale: 1,
           width: '100%',
@@ -411,6 +421,7 @@ import Button from './Button.astro';
           },
         });
 
+        // Animate the current video to mini player
         tl.from(
           '#current-video',
           {
