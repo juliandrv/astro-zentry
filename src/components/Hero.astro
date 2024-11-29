@@ -390,10 +390,6 @@ import Button from './Button.astro';
 
     if (hasClicked) {
       requestAnimationFrame(() => {
-        // Get the mini player dimensions and position
-        const miniPlayer = document.querySelector('#mini-player');
-        const miniPlayerRect = miniPlayer?.getBoundingClientRect();
-
         // Set initial state to match mini player size and position
         gsap.set('#next-video', {
           visibility: 'visible',
@@ -405,6 +401,7 @@ import Button from './Button.astro';
           position: 'absolute',
           top: '50%',
           left: '50%',
+          pointerEvents: 'auto', // Ensure it remains interactive
         });
 
         const tl = gsap.timeline();
@@ -421,13 +418,14 @@ import Button from './Button.astro';
           },
         });
 
-        // Animate the current video to mini player
+        // Modify the current video animation to stay visible
         tl.from(
           '#current-video',
           {
             scale: 0,
             duration: 1,
             ease: 'power2.inOut',
+            clearProps: 'all', // This ensures the element retains its final state
           },
           '<'
         );
